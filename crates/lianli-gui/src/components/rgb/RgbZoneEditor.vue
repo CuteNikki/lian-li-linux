@@ -138,10 +138,12 @@ function onMode(value: string) {
   if (effect.value.mode === value && (!props.perFanOnly || effect.value.scope === "Fan") && (!props.groupEffects || effect.value.scope !== "Fan")) return;
   const device = config.rgbDeviceConfig(props.deviceId);
   const memoryZone = props.groupEffects ? null : props.zoneIndex;
-  rememberDeviceEffect(device, memoryZone, effect.value, false);
+  const leavingDirect = effect.value.mode === "Direct";
+  if (!leavingDirect) rememberDeviceEffect(device, memoryZone, effect.value, false);
   const scope = props.perFanOnly ? "Fan" : props.cap.software_modes?.includes(value) || (props.groupEffects && effect.value.scope === "Fan") ? "All" : effect.value.scope;
   const remembered = recallDeviceEffect(device, memoryZone, scope, value);
-  patchEffect(remembered?.effect ?? { mode: value, scope });
+  const colors = leavingDirect ? { colors: effect.value.colors.slice(0, 1) } : {};
+  patchEffect(remembered?.effect ?? { mode: value, scope, ...colors });
 }
 
 function onColor(index: number, value: RGB | any) {
@@ -206,6 +208,7 @@ function markDirectChange() {
     device.regions = null;
     for (const zone of device.zones) zone.effect.mode = "Direct";
   }
+  props.zone.effect.colors = ledColors.value.map((color) => [...color] as RGB);
   config.markDirty();
 }
 
